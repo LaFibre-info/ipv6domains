@@ -1,0 +1,101 @@
+{{define "page"}}
+<!DOCTYPE html>
+<html>
+    <style>
+        table, th, td {
+           border: 1px solid black;
+        }
+    </style> 
+<body>
+    <h3>Results for {{.Domain}}</h3>
+<table>
+    <tr>
+        <th></th>
+        <th>IPv4</th>
+        <th>IPv6</th>
+    </tr>
+    <tr>
+        <td>DNS servers</td>
+        <td>
+            <table>
+                {{range .Host4}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+        <td>
+            <table>
+                {{range .Host6}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+    </tr>    
+
+    <tr>
+        <td>IPv6-only DNS</td>
+        <td>
+        </td>
+        <td>
+            {{.DNS6Only}}
+        </td>
+    </tr>    
+
+    <tr>
+        <td>Mail exchangers</td>
+        <td>
+            <table>
+                {{range .MX4}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+        <td>
+            <table>
+                {{range .MX6}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+    </tr>
+
+    <tr>
+        <td>{{.Domain}}</td>
+        <td>
+            <table>
+                {{range .Host4}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+        <td>
+            <table>
+                {{range .Host6}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+    </tr>
+
+    <tr>
+        <td>www.{{.Domain}}</td>
+        <td>
+            <table>
+                {{range .WWW4}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+        <td>
+            <table>
+                {{range .WWW6}}
+                <tr><td>{{.}}</td></tr>
+                {{end}}
+            </table>
+        </td>
+    </tr>
+
+</table>
+</body>
+</html>
+{{end}}
