@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 	"os"
+	"sort"
 	"strings"
 	"unicode/utf8"
 )
@@ -129,6 +130,17 @@ func QueryDomain(domain string) (*Result, error) {
 		r.MX4 = append(r.MX4, mx4...)
 		r.MX6 = append(r.MX6, mx6...)
 	}
+
+	// sort all lists
+	sort.Strings(r.Host4)
+	sort.Strings(r.Host6)
+	sort.Strings(r.WWW4)
+	sort.Strings(r.WWW6)
+	sort.Strings(r.NS4)
+	sort.Strings(r.NS6)
+	sort.Strings(r.MX4)
+	sort.Strings(r.MX6)
+
 	return &r, nil
 }
 
