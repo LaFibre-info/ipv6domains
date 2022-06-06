@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -33,7 +34,10 @@ type Result struct {
 func QueryHost(host string) ([]string, []string, error) {
 	var a4, a6 []string
 
-	addrs, _ := net.LookupHost(host)
+	addrs, err := net.LookupHost(host)
+	if err != nil {
+		return nil, nil, err
+	}
 	for _, h := range addrs {
 		a, _ := netip.ParseAddr(h)
 		if a.Is4() {
@@ -51,20 +55,27 @@ func QueryDomain(domain string) (*Result, error) {
 
 	domain = strings.TrimPrefix(domain, "www.")
 	var r Result = Result{Domain: domain}
-
+	var err error
 	// hosts
-	r.Host4, r.Host6, _ = QueryHost(domain)
-
+	r.Host4, r.Host6, err = QueryHost(domain)
+	if err != nil {
+		return nil, fmt.Errorf("QueryHost failed: %v", err)
+	}
 	// wwww hosts
-	r.WWW4, r.WWW6, _ = QueryHost("www." + domain)
-
+	r.WWW4, r.WWW6, err = QueryHost("www." + domain)
+	if err != nil {
+		return nil, fmt.Errorf("QueryHost (www) failed: %v", err)
+	}
 	// NS
 	nss, err := net.LookupNS(domain)
 	if err != nil {
 		return nil, fmt.Errorf("LookupNS failed: %v", err)
 	}
 	for _, ns := range nss {
-		ns4, ns6, _ := QueryHost(ns.Host)
+		ns4, ns6, err := QueryHost(ns.Host)
+		if err != nil {
+			return nil, fmt.Errorf("QueryHost for NS failed: %v", err)
+		}
 		r.NS4 = append(r.NS4, ns4...)
 		r.NS6 = append(r.NS6, ns6...)
 	}
@@ -74,7 +85,10 @@ func QueryDomain(domain string) (*Result, error) {
 		return nil, fmt.Errorf("LookupMX failed: %v", err)
 	}
 	for _, mx := range mxs {
-		mx4, mx6, _ := QueryHost(mx.Host)
+		mx4, mx6, err := QueryHost(mx.Host)
+		if err != nil {
+			return nil, fmt.Errorf("QueryHost for MX failed: %v", err)
+		}
 		r.MX4 = append(r.MX4, mx4...)
 		r.MX6 = append(r.MX6, mx6...)
 	}
@@ -132,8 +146,12 @@ func (r *Result) Display() {
 
 }
 func main() {
-	if len(os.Args) == 1 {
-		server()
+
+	addr := flag.String("a", ":3000", "address to listen to. format = [address]:port ")
+	flag.Parse()
+
+	if flag.NArg() == 0 {
+		server(*addr)
 		os.Exit(0)
 	}
 
@@ -146,7 +164,7 @@ func main() {
 	}
 }
 
-func server() {
+func server(addr string) {
 	tpl, err := template.New("page").Parse(results_tpl)
 	if err != nil {
 		log.Fatal(err)
@@ -172,5 +190,10 @@ func server() {
 	}
 
 	http.HandleFunc("/", hdl)
-	http.ListenAndServe(":3000", nil)
+	fmt.Printf("start listening on %s (ctrl-c to quit)\n", addr)
+	err = http.ListenAndServe(addr, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
