@@ -69,7 +69,7 @@ func QueryDomain(domain string) (*Result, error) {
 	// NS
 	nss, err := net.LookupNS(domain)
 	if err != nil {
-		return nil, fmt.Errorf("LookupNS failed: %v", err)
+		//return nil, fmt.Errorf("LookupNS failed: %v", err)
 	}
 	for _, ns := range nss {
 		ns4, ns6, err := QueryHost(ns.Host)
@@ -82,15 +82,16 @@ func QueryDomain(domain string) (*Result, error) {
 	// MX
 	mxs, err := net.LookupMX(domain)
 	if err != nil {
-		return nil, fmt.Errorf("LookupMX failed: %v", err)
+		//return nil, fmt.Errorf("LookupMX failed: %v", err)
 	}
 	for _, mx := range mxs {
 		mx4, mx6, err := QueryHost(mx.Host)
 		if err != nil {
-			return nil, fmt.Errorf("QueryHost for MX failed: %v", err)
+			//return nil, fmt.Errorf("QueryHost for MX failed: %v", err)
+		} else {
+			r.MX4 = append(r.MX4, mx4...)
+			r.MX6 = append(r.MX6, mx6...)
 		}
-		r.MX4 = append(r.MX4, mx4...)
-		r.MX6 = append(r.MX6, mx6...)
 	}
 
 	// sort all lists
@@ -160,11 +161,8 @@ func Rank(r *Result) string {
 		stars += 1
 	}
 	if len(r.NS6) > 0 {
-		stars += 1
-	}
-	// NYI: r.DNS6Only so we +2 if NS v6
-	if len(r.MX4) > 0 && len(r.MX6) > 0 {
-		stars += 1
+		// NYI: r.DNS6Only so we +2 if NS v6
+		stars += 2
 	}
 
 	return strings.Repeat("*", stars)
