@@ -143,11 +143,37 @@ func (r *Result) Display() {
 	for _, s := range r.MX6 {
 		fmt.Printf("  %s\n", s)
 	}
-
 }
+
+func Rank(r *Result) string {
+	if r == nil {
+		return "?????"
+	}
+	stars := 0
+	if len(r.Host6) > 0 {
+		stars += 1
+	}
+	if len(r.MX4) > 0 && len(r.MX6) > 0 {
+		stars += 1
+	}
+	if len(r.WWW4) > 0 && len(r.WWW6) > 0 {
+		stars += 1
+	}
+	if len(r.NS6) > 0 {
+		stars += 1
+	}
+	// NYI: r.DNS6Only so we +2 if NS v6
+	if len(r.MX4) > 0 && len(r.MX6) > 0 {
+		stars += 1
+	}
+
+	return strings.Repeat("*", stars)
+}
+
 func main() {
 
 	addr := flag.String("a", ":3000", "address to listen to. format = [address]:port ")
+	verbose := flag.Bool("v", false, "verbose output")
 	flag.Parse()
 
 	if flag.NArg() == 0 {
@@ -155,12 +181,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	for _, s := range os.Args[1:2] {
+	for _, s := range flag.Args() {
 		r, err := QueryDomain(s)
 		if err != nil {
 			log.Fatal(err)
 		}
-		r.Display()
+		if *verbose {
+			r.Display()
+		} else {
+			fmt.Printf("%s : %s\n", r.Domain, Rank(r))
+		}
 	}
 }
 
