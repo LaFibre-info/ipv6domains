@@ -50,6 +50,15 @@ func QueryHost(host string) ([]string, []string, error) {
 	return a4, a6, nil
 }
 
+// check if given error is the DNS IsNotFound error
+func isNotfound(err error) bool {
+	dnserr, ok := err.(*net.DNSError)
+	if ok {
+		return dnserr.IsNotFound
+	}
+	return false
+}
+
 // QueryHost performs various DNS lookups to fill in the Result struct
 func QueryDomain(domain string) (*Result, error) {
 
@@ -58,18 +67,22 @@ func QueryDomain(domain string) (*Result, error) {
 	var err error
 	// hosts
 	r.Host4, r.Host6, err = QueryHost(domain)
-	if err != nil {
+	if err != nil && !isNotfound(err) {
 		return nil, fmt.Errorf("QueryHost failed: %v", err)
 	}
 	// wwww hosts
 	r.WWW4, r.WWW6, err = QueryHost("www." + domain)
-	if err != nil {
+	if err != nil && !isNotfound(err) {
 		return nil, fmt.Errorf("QueryHost (www) failed: %v", err)
 	}
 	// NS
 	nss, err := net.LookupNS(domain)
-	if err != nil {
-		//return nil, fmt.Errorf("LookupNS failed: %v", err)
+	if err != nil && !isNotfound(err) {
+		return nil, fmt.Errorf("LookupNS failed: %v", err)
+	}
+	// no NS at , nor IPv4 nor IPv6 (shouldn't happen)
+	if len(nss) == 0 {
+		return nil, fmt.Errorf("LookupNS failed: domain has no NS")
 	}
 	for _, ns := range nss {
 		ns4, ns6, err := QueryHost(ns.Host)
@@ -81,13 +94,13 @@ func QueryDomain(domain string) (*Result, error) {
 	}
 	// MX
 	mxs, err := net.LookupMX(domain)
-	if err != nil {
-		//return nil, fmt.Errorf("LookupMX failed: %v", err)
+	if err != nil && !isNotfound(err) {
+		return nil, fmt.Errorf("LookupMX failed: %v", err)
 	}
 	for _, mx := range mxs {
 		mx4, mx6, err := QueryHost(mx.Host)
-		if err != nil {
-			//return nil, fmt.Errorf("QueryHost for MX failed: %v", err)
+		if err != nil && !isNotfound(err) {
+			return nil, fmt.Errorf("QueryHost for MX failed: %v", err)
 		} else {
 			r.MX4 = append(r.MX4, mx4...)
 			r.MX6 = append(r.MX6, mx6...)
