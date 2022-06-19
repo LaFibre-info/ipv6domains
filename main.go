@@ -199,10 +199,20 @@ func main() {
 
 	addr := flag.String("a", ":3000", "address to listen to. format = [address]:port ")
 	verbose := flag.Bool("v", false, "verbose output")
+	web := flag.String("web", "", "use local web directoy instead of embeded content")
 	flag.Parse()
 
+	f, err := fs.Sub(webDir, "web")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if *web != "" {
+		f = os.DirFS(*web)
+	}
+
 	if flag.NArg() == 0 {
-		server(*addr)
+		server(*addr, f)
 		os.Exit(0)
 	}
 
@@ -219,8 +229,8 @@ func main() {
 	}
 }
 
-func server(addr string) {
-	tpl := template.Must(template.ParseFS(webDir, "web/templates/results.html"))
+func server(addr string, fs fs.FS) {
+	tpl := template.Must(template.ParseFS(fs, "templates/q.html"))
 	t := tpl.Lookup("page")
 
 	hdl := func(w http.ResponseWriter, r *http.Request) {
@@ -241,14 +251,10 @@ func server(addr string) {
 		}
 	}
 
-	staticContent, err := fs.Sub(webDir, "web")
-	if err != nil {
-		log.Fatal(err)
-	}
 	http.HandleFunc("/q/", hdl)
-	http.Handle("/", http.FileServer(http.FS(staticContent)))
+	http.Handle("/", http.FileServer(http.FS(fs)))
 	fmt.Printf("start listening on %s (ctrl-c to quit)\n", addr)
-	err = http.ListenAndServe(addr, nil)
+	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

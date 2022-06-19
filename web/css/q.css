@@ -1,0 +1,45 @@
+.container {  display: grid;
+    grid-template-columns: 10% 45% 45%;
+    grid-template-rows: min-content 1fr 1fr 1fr 1fr;
+    gap: 2px 2px;
+    grid-auto-flow: row;
+    justify-content: center;
+    grid-template-areas:
+      ". IPv4 IPv6"
+      "DNS-Servers NS4 NS6"
+      "MX MX4 MX6"
+      "Host Host4 Host6"
+      "www www4 www6";
+    width: 50%;
+  }
+  
+  .IPv4 { grid-area: IPv4; }
+  
+  .IPv6 { grid-area: IPv6; }
+  
+  .DNS-Servers { grid-area: DNS-Servers; }
+  
+  .NS4 { grid-area: NS4; }
+  
+  .NS6 { grid-area: NS6; }
+  
+  .MX { grid-area: MX; }
+  
+  .MX4 { grid-area: MX4; }
+  
+  .MX6 { grid-area: MX6; }
+  
+  .Host { grid-area: Host; }
+  
+  .Host4 { grid-area: Host4; }
+  
+  .Host6 { grid-area: Host6; }
+  
+  .www { grid-area: www; }
+  
+  .www4 { grid-area: www4; }
+  
+  .www6 { grid-area: www6; }
+  
+  
+  /* https://grid.layoutit.com/?id=YQ8ME30 */

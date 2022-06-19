@@ -1,0 +1,94 @@
+{{define "page"}}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="../css/q.css" />
+</head>
+
+<body>
+    <h3>Results for {{.Domain}}</h3>
+    <div class="container">
+        <div class="IPv4">IPv4</div>
+        <div class="IPv6">IPv6</div>
+        <div class="DNS-Servers">DNS Servers</div>
+        <div class="NS4">
+            <table>
+                {{range .NS4}}
+                <tr>
+                    <td>{{.}}</td>
+                </tr>
+                {{end}}
+            </table>
+        </div>
+        <div class="NS6">
+            <table>
+                {{range .NS6}}
+                <tr>
+                    <td>{{.}}</td>
+                </tr>
+                {{end}}
+            </table>
+        </div>
+        <div class="MX">Mail Exchangers</div>
+        <div class="MX4">
+            <table>
+                {{range .MX4}}
+                <tr>
+                    <td>{{.}}</td>
+                </tr>
+                {{end}}
+            </table>
+        </div>
+        <div class="MX6">
+            <table>
+                {{range .MX6}}
+                <tr>
+                    <td>{{.}}</td>
+                </tr>
+                {{end}}
+            </table>
+        </div>
+        <div class="Host">{{.Domain}}</div>
+            <div class="Host4">
+                <table>
+                    {{range .Host4}}
+                    <tr>
+                        <td>{{.}}</td>
+                    </tr>
+                    {{end}}
+                </table>
+            </div>
+            <div class="Host6">
+                <table>
+                    {{range .Host6}}
+                    <tr>
+                        <td>{{.}}</td>
+                    </tr>
+                    {{end}}
+                </table>
+            </div>
+            <div class="www">www.{{.Domain}}</div>
+            <div class="www4">
+                <table>
+                    {{range .WWW4}}
+                    <tr>
+                        <td>{{.}}</td>
+                    </tr>
+                    {{end}}
+                </table>
+            </div>
+            <div class="www6">
+                <table>
+                    {{range .WWW6}}
+                    <tr>
+                        <td>{{.}}</td>
+                    </tr>
+                    {{end}}
+                </table>
+            </div>
+        </div>
+</body>
+
+</html>
+{{end}}
