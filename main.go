@@ -1,10 +1,11 @@
 package main
 
 import (
-	_ "embed"
+	"embed"
 	"flag"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -14,8 +15,8 @@ import (
 	"strings"
 )
 
-//go:embed results.html
-var results_tpl string
+//go:embed web/*
+var webDir embed.FS
 
 type Result struct {
 	Domain   string
@@ -30,9 +31,22 @@ type Result struct {
 	WWW6     []string
 }
 
+// func customResolver() {
+// 	r := &net.Resolver{
+// 		PreferGo: true,
+// 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+// 			d := net.Dialer{
+// 				Timeout: time.Millisecond * time.Duration(10000),
+// 			}
+// 			return d.DialContext(ctx, network, "8.8.8.8:53")
+// 		},
+// 	}
+// 	ip, _ := r.LookupHost(context.Background(), "www.google.com")
+// }
+
 // QueryHost performs net.LookupHost on a host name and return the responses in distinct IPv4 and IPv6 lists.
-func QueryHost(host string) ([]string, []string, error) {
-	var a4, a6 []string
+func QueryHost(host string) (ipv4 []string, ipv6 []string, err error) {
+	//var a4, a6 []string
 
 	addrs, err := net.LookupHost(host)
 	if err != nil {
@@ -41,13 +55,13 @@ func QueryHost(host string) ([]string, []string, error) {
 	for _, h := range addrs {
 		a, _ := netip.ParseAddr(h)
 		if a.Is4() {
-			a4 = append(a4, a.String())
+			ipv4 = append(ipv4, a.String())
 		}
 		if a.Is6() {
-			a6 = append(a6, a.String())
+			ipv6 = append(ipv6, a.String())
 		}
 	}
-	return a4, a6, nil
+	return ipv4, ipv6, nil
 }
 
 // check if given error is the DNS IsNotFound error
@@ -206,16 +220,13 @@ func main() {
 }
 
 func server(addr string) {
-	tpl, err := template.New("page").Parse(results_tpl)
-	if err != nil {
-		log.Fatal(err)
-	}
+	tpl := template.Must(template.ParseFS(webDir, "web/templates/results.html"))
 	t := tpl.Lookup("page")
 
 	hdl := func(w http.ResponseWriter, r *http.Request) {
 
 		// should sanatize
-		result, err := QueryDomain(strings.TrimPrefix(r.URL.Path, "/"))
+		result, err := QueryDomain(strings.TrimPrefix(r.URL.Path, "/q/"))
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("QueryDomain error: %v", err), http.StatusInternalServerError)
@@ -230,7 +241,12 @@ func server(addr string) {
 		}
 	}
 
-	http.HandleFunc("/", hdl)
+	staticContent, err := fs.Sub(webDir, "web")
+	if err != nil {
+		log.Fatal(err)
+	}
+	http.HandleFunc("/q/", hdl)
+	http.Handle("/", http.FileServer(http.FS(staticContent)))
 	fmt.Printf("start listening on %s (ctrl-c to quit)\n", addr)
 	err = http.ListenAndServe(addr, nil)
 	if err != nil {
