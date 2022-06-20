@@ -13,6 +13,8 @@ import (
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 //go:embed web/*
@@ -233,11 +235,11 @@ func server(addr string, fs fs.FS) {
 	tpl := template.Must(template.ParseFS(fs, "templates/q.html"))
 	t := tpl.Lookup("page")
 
-	hdl := func(w http.ResponseWriter, r *http.Request) {
+	hdl := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 		// should sanatize
-		result, err := QueryDomain(strings.TrimPrefix(r.URL.Path, "/q/"))
-
+		result, err := QueryDomain(ps.ByName("domain"))
+		fmt.Printf("domain = %s\n", ps.ByName("domain"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("QueryDomain error: %v", err), http.StatusInternalServerError)
 			return
@@ -251,12 +253,14 @@ func server(addr string, fs fs.FS) {
 		}
 	}
 
-	http.HandleFunc("/q/", hdl)
-	http.Handle("/", http.FileServer(http.FS(fs)))
+	router := httprouter.New()
+	router.GET("/q/:domain", hdl)
+	router.NotFound = http.FileServer(http.FS(fs))
+
 	fmt.Printf("start listening on %s (ctrl-c to quit)\n", addr)
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(http.ListenAndServe(addr, router))
+
+	// http.HandleFunc("/q/", hdl)
+	// http.Handle("/", http.FileServer(http.FS(fs)))
 
 }
