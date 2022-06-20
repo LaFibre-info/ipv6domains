@@ -209,12 +209,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	reparse := false
 	if *web != "" {
 		f = os.DirFS(*web)
+		reparse = true
 	}
 
 	if flag.NArg() == 0 {
-		server(*addr, f)
+		server(*addr, f, reparse)
 		os.Exit(0)
 	}
 
@@ -231,10 +233,20 @@ func main() {
 	}
 }
 
-func server(addr string, fs fs.FS) {
-	tpl := template.Must(template.ParseFS(fs, "templates/q.html"))
-	t := tpl.Lookup("page")
+func parseTpl(fs fs.FS, path string) (*template.Template, error) {
+	tpl, err := template.ParseFS(fs, path)
+	if err != nil {
+		return nil, err
+	}
+	return tpl.Lookup("page"), nil
+}
 
+func server(addr string, fs fs.FS, reparse bool) {
+
+	t, err := parseTpl(fs, "templates/*.html")
+	if err != nil {
+		log.Fatal(err)
+	}
 	hdl := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 		// should sanatize
@@ -246,10 +258,18 @@ func server(addr string, fs fs.FS) {
 		}
 
 		//result.Display()
-
+		if reparse {
+			t, err = parseTpl(fs, "templates/*.html")
+			fmt.Printf("reparsed\n")
+			if err != nil {
+				http.Error(w, fmt.Sprintf("parseTpl error: %v", err), http.StatusInternalServerError)
+				return
+			}
+		}
 		err = t.Execute(w, result)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("QueryDomain error: %v", err), http.StatusInternalServerError)
+			return
 		}
 	}
 
@@ -259,8 +279,4 @@ func server(addr string, fs fs.FS) {
 
 	fmt.Printf("start listening on %s (ctrl-c to quit)\n", addr)
 	log.Fatal(http.ListenAndServe(addr, router))
-
-	// http.HandleFunc("/q/", hdl)
-	// http.Handle("/", http.FileServer(http.FS(fs)))
-
 }
