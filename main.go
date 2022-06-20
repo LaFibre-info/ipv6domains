@@ -200,7 +200,7 @@ func Rank(r *Result) string {
 func main() {
 
 	addr := flag.String("a", ":3000", "address to listen to. format = [address]:port ")
-	verbose := flag.Bool("v", false, "verbose output")
+	verbose := flag.Bool("v", false, "verbose output (for cmd line mode)")
 	web := flag.String("web", "", "use local web directoy instead of embeded content")
 	flag.Parse()
 
@@ -251,7 +251,7 @@ func server(addr string, fs fs.FS, reparse bool) {
 
 		// should sanatize
 		result, err := QueryDomain(ps.ByName("domain"))
-		fmt.Printf("domain = %s\n", ps.ByName("domain"))
+		fmt.Printf("%s asked for domain = %s\n", r.RemoteAddr, ps.ByName("domain"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("QueryDomain error: %v", err), http.StatusInternalServerError)
 			return
@@ -260,7 +260,7 @@ func server(addr string, fs fs.FS, reparse bool) {
 		//result.Display()
 		if reparse {
 			t, err = parseTpl(fs, "templates/*.html")
-			fmt.Printf("reparsed\n")
+			//fmt.Printf("reparsed\n")
 			if err != nil {
 				http.Error(w, fmt.Sprintf("parseTpl error: %v", err), http.StatusInternalServerError)
 				return
