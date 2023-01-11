@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"embed"
 	"flag"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -202,6 +204,9 @@ func main() {
 	addr := flag.String("a", ":3000", "address to listen to. format = [address]:port ")
 	verbose := flag.Bool("v", false, "verbose output (for cmd line mode)")
 	web := flag.String("web", "", "use local web directoy instead of embeded content")
+	check := flag.Int("check", 0, "check domain (cmd line mode only)")
+	njobs := flag.Int("njobs", 5, "number of jobs for check domains (cmd line mode only, requires -check)")
+
 	flag.Parse()
 
 	f, err := fs.Sub(webDir, "web")
@@ -215,6 +220,11 @@ func main() {
 		reparse = true
 	}
 
+	if *check != 0 {
+		scanFile(os.Stdin, *check, *njobs)
+		os.Exit(0)
+	}
+
 	if flag.NArg() == 0 {
 		server(*addr, f, reparse)
 		os.Exit(0)
@@ -223,13 +233,13 @@ func main() {
 	for _, s := range flag.Args() {
 		r, err := QueryDomain(s)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Printf("%s: error %s\n", s, err)
+			continue
 		}
 		if *verbose {
 			r.Display()
-		} else {
-			fmt.Printf("%s : %s\n", r.Domain, Rank(r))
 		}
+		fmt.Printf("%s : %s\n", r.Domain, Rank(r))
 	}
 }
 
@@ -279,4 +289,64 @@ func server(addr string, fs fs.FS, reparse bool) {
 
 	fmt.Printf("start listening on %s (ctrl-c to quit)\n", addr)
 	log.Fatal(http.ListenAndServe(addr, router))
+}
+
+// scan a file,reading domain names, one by line
+// and apply a check based on the "mode" argument value:
+// 4 - only output the domain names that are IPv4 only
+// 6 - only output the domain names that are IPv6 only
+// any other value: out #IP entries
+// The check is parallelized with numjobs checks at a time
+func scanFile(file *os.File, mode int, numjobs int) {
+	scan := bufio.NewScanner(file)
+	if numjobs <= 0 {
+		log.Fatal("scanFile: wrong number of jobs")
+	}
+
+	domains := make(chan string, numjobs)
+	var wg sync.WaitGroup
+	for w := 1; w <= numjobs; w++ {
+		wg.Add(1)
+		go func(doms <-chan string, wn int) {
+			defer wg.Done()
+			for dom := range doms {
+				//fmt.Printf("worker %d - checking %s\n", wn, dom)
+				checkDom(dom, mode)
+			}
+		}(domains, w)
+	}
+
+	for scan.Scan() {
+		s := scan.Text()
+		domains <- s
+	}
+	close(domains)
+	wg.Wait()
+}
+
+// checkDom applies a check on a domain based on the "mode" argument value:
+// 4 - only output the domain names that are IPv4 only
+// 6 - only output the domain names that are IPv6 only
+// any other value: out #IP entries
+func checkDom(dom string, mode int) {
+	r, err := QueryDomain(dom)
+	if err != nil {
+		fmt.Printf("%s, (%s)\n", dom, err)
+		return
+	}
+	if mode != 4 && mode != 6 && mode != 1 {
+		fmt.Printf("%s, %d, %d, %d, %d\n", r.Domain, len(r.Host4), len(r.WWW4), len(r.Host6), len(r.WWW6))
+		return
+	}
+
+	ip4 := len(r.Host4)+len(r.WWW4) > 0
+	ip6 := len(r.Host6)+len(r.WWW6) > 0
+	if mode == 6 && ip6 && !ip4 {
+		fmt.Printf("%s\n", r.Domain)
+		return
+	}
+	if mode == 4 && !ip6 && ip4 {
+		fmt.Printf("%s\n", r.Domain)
+		return
+	}
 }
