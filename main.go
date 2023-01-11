@@ -204,7 +204,7 @@ func main() {
 	addr := flag.String("a", ":3000", "address to listen to. format = [address]:port ")
 	verbose := flag.Bool("v", false, "verbose output (for cmd line mode)")
 	web := flag.String("web", "", "use local web directoy instead of embeded content")
-	check := flag.Int("check", 0, "check domain (cmd line mode only)")
+	check := flag.Int("check", 0, "check domain names from stdin (cmd line mode only)")
 	njobs := flag.Int("njobs", 5, "number of jobs for check domains (cmd line mode only, requires -check)")
 
 	flag.Parse()
