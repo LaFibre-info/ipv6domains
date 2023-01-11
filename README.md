@@ -21,7 +21,7 @@ It will then processes each domain name based on the `mode` value:
   * 4 : only output the domain names that are IPv4 only (A or www A entries and no AAAA or www AAAA entries)
   * 6 : only output the domain names that are IPv6 only (no A or www A entries and AAAA or www AAAA entries)
   * 1 : only output the domain names that have errors
-  * any other value: output number of entries for the following: A, A for www, AAAA, AAAA for www
+  * any other non zero value: output number of entries for the following: A, A for www, AAAA, AAAA for www
 
 This is done in parallel using max `njobs` workers at a time (use `-njobs n` to change this)
 ## dev
